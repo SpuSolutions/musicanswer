@@ -43,7 +43,7 @@ def listAllUrl(urls):
             urls.append(y)
 
 
-def from_table_to_csv(url):
+def from_table_to_csv(url, logger, index=1):
     try:
         page = requests.get(url)
     except Exception as e:
@@ -52,14 +52,16 @@ def from_table_to_csv(url):
     try:
         soup = BeautifulSoup(page.text, "lxml")
         soup.prettify()
-        table = soup.find_all("table")[1]
+        table = soup.find_all("table")[index]
         # python3 just use th.text
         headers = [th.text.encode("utf-8") for th in table.select("tr th")]
         filename = url.rsplit('/', 1)[-1]
         with open("data/{}_out.csv".format(filename), "w", encoding='utf-8') as f:
             wr = csv.writer(f)
             wr.writerow(headers)
-            wr.writerows([[td.text.strip() for td in row.find_all("td")] for row in table.select("tr + tr")])
+            row = [[td.text.strip() for td in row.find_all("td")] for row in table.select("tr + tr")]
+            wr.writerows(row)
+            logger.debug("wrote this row {} in {}".format(row, filename))
     except Exception as e:
         logger.error(e)
         table = soup.find_all("li")
@@ -73,6 +75,7 @@ def from_table_to_csv(url):
                 row = [i, i]
                 row.extend([t.strip() for t in song.text.strip().split('-')])
                 wr.writerow(row)
+                logger.debug("Got from ordinated list. Wrote this row {}".format(row))
                 i += 1
             # f.write("\n".join(map(str, [row.text.strip() for row in table])))
 
@@ -94,8 +97,15 @@ if __name__ == "__main__":
     logger = utils.setup_logger(os.path.basename(__file__))
     logger.info("Start script")
     web_pages = [base_url.format(str(year)) for year in range(start, end, 1)]
+    not_available_table = "http://chartitalia.blogspot.com/"
     for web_page in web_pages:
         urls = get_all_urls(web_page, logger)
         for url in urls:
-            from_table_to_csv(url)
+            # check for 2008 and more
+            new_urls = get_all_urls(url, logger)
+            if any(not_available_table in new_url for new_url in new_urls):
+                from_table_to_csv(new_urls[0], logger, index=0)
+            else:
+                from_table_to_csv(url, logger)
+
     logger.info("End")
