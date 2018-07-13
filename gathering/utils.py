@@ -1,11 +1,37 @@
 # -*- coding: utf-8 -*-
-import requests
-from bs4 import BeautifulSoup
-import wikipedia
-import os
-import re
+# utils.py
+# this file contains utility functions
 import time
 import unicodedata
+
+import logging
+import os
+import re
+import requests
+import wikipedia
+from bs4 import BeautifulSoup
+
+
+def setup_logger(logger_module, severity=logging.INFO):
+    logging.addLevelName(logging.WARNING, "WARN")
+    LOG_FORMAT = '%(asctime)s %(name)s - %(levelname)s: %(message)s'
+    logging.addLevelName(logging.ERROR, "ERR")
+    logger = logging.getLogger(logger_module)
+    formatter = logging.Formatter(LOG_FORMAT)
+    logger.setLevel(severity)
+
+    # console output
+    syslog = logging.StreamHandler()
+    syslog.setFormatter(formatter)
+    logger.addHandler(syslog)
+
+    # File output
+    # log_file = '/tmp/engine.nifi.node.log'
+    # file_handler = logging.FileHandler(log_file)
+    # file_handler.setFormatter(formatter)
+    # logger.addHandler(file_handler)
+
+    return logger
 
 
 def check_if_string_contains_list(list_of_words, stack):
@@ -146,4 +172,4 @@ def strip_accents(s):
 
 def fix_wiki_url(link):
     base_wiki_url = "https://en.wikipedia.org/wiki/"
-    return base_wiki_url+link
+    return base_wiki_url + link
